@@ -1,39 +1,11 @@
 extends Node2D
 
-### ALL CODE PERTAINING TO RELAY CONNECTION
+
 var PLAYER_DICT = {}
 var ROOMS = {}
 var CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 
-# Called when the node enters the scene tree for the first time.
-func _ready():
-	var relay_peer = ENetMultiplayerPeer.new()
-	var error = relay_peer.create_server(25566)
-	if error:
-		return(error)
-	relay_peer.is_server_relay_supported()
-	multiplayer.multiplayer_peer = relay_peer
-	
-	
-	pass # Replace with function body.
-
-
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta):
-	#print(multiplayer.multiplayer_peer.get_connection_status())
-	pass
-
-@rpc("any_peer","call_remote","reliable")
-func _resgister_player():
-	var new_player_id = multiplayer.get_remote_sender_id()
-	PLAYER_DICT[new_player_id] = {
-		"player_name":"EMPTY",
-		"room_code":"EMPTY",
-		"is_host":"false",
-		"multiplayer_id":0
-	}
-
-
+## Supplementary functions
 func create_room_code():
 	var id = ""
 	for n in 5:
@@ -44,7 +16,29 @@ func create_room_code():
 		return create_room_code()
 	
 	return id
+	
+### ALL CODE PERTAINING TO RELAY CONNECTION
+# Called when the node enters the scene tree for the first time
+# Sets Up Server Socket
+func _ready():
+	var relay_peer = ENetMultiplayerPeer.new()
+	var error = relay_peer.create_server(25566)
+	if error:
+		return(error)
+	multiplayer.multiplayer_peer = relay_peer
 
+## CREATES PLAYER ON JOIN
+@rpc("any_peer","call_remote","reliable")
+func _resgister_player():
+	var new_player_id = multiplayer.get_remote_sender_id()
+	PLAYER_DICT[new_player_id] = {
+		"player_name":"EMPTY",
+		"room_code":"EMPTY",
+		"is_host":"false",
+		"multiplayer_id":0
+	}
+
+## HOSTING ROOM CODE
 @rpc("any_peer","call_remote","reliable")
 func host_rpc():
 	var room_code = create_room_code()
@@ -68,7 +62,13 @@ func host_rpc():
 @rpc("authority","call_remote","reliable")
 func host_success_rpc(room_code : String,room_info : Dictionary):
 	pass
-	
+
+@rpc("authority","call_remote","reliable")
+func host_fail_rpc(room_code : String, error_message : String):
+	pass	
+
+
+## JOINING ROOM CODE
 @rpc("any_peer","call_remote","reliable")
 func join_rpc(room_code : String):
 	var sender_id = multiplayer.get_remote_sender_id()
@@ -76,7 +76,7 @@ func join_rpc(room_code : String):
 		join_fail_rpc.rpc_id(sender_id,room_code,"NO ROOM FOUND")
 		return
 	
-	if ROOMS[room_code].max_players >= ROOMS[room_code].players.size():
+	if ROOMS[room_code].max_players <= ROOMS[room_code].players.size():
 		join_fail_rpc.rpc_id(sender_id,room_code,"ROOM IS FULL")
 		return
 	
@@ -92,7 +92,8 @@ func join_success_rpc(room_code : String):
 @rpc("authority","call_remote","reliable")
 func join_fail_rpc(room_code : String, error_message : String):
 	pass
-	
+
+## Sync room info
 func sync_room_data_all(room_code : String):
 	for player_id in ROOMS[room_code].players:
 		sync_room_data_rpc.rpc_id(player_id,ROOMS[room_code])
@@ -103,7 +104,4 @@ func sync_room_data_rpc(room_data : Dictionary):
 	
 ### END OF RELAY SERVER CONNECTION 
 
-### EMPTY RPCs FOR HOST TO CLIENTS
-@rpc("any_peer","call_local","reliable")
-func change_scene_rpc(scene_path : String):
-	pass
+
