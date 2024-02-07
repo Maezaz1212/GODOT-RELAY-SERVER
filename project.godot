@@ -18,7 +18,6 @@ config/icon="res://icon.svg"
 [autoload]
 
 Relayconnect="*res://RELAY.gd"
-GameManager="*res://GAME_MANAGER.gd"
 
 [dotnet]
 

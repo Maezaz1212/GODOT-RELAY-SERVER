@@ -81,12 +81,12 @@ func join_rpc(room_code : String):
 		return
 	
 	ROOMS[room_code].players[sender_id] = PLAYER_DICT[sender_id]
-	join_success_rpc.rpc_id(sender_id,room_code)
+	join_success_rpc.rpc_id(sender_id,room_code,ROOMS[room_code])
 	sync_room_data_all(room_code)
 	
 
 @rpc("authority","call_remote","reliable")
-func join_success_rpc(room_code : String):
+func join_success_rpc(room_code : String,room_info : Dictionary):
 	pass
 
 @rpc("authority","call_remote","reliable")
